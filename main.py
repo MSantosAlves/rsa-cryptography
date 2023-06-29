@@ -9,4 +9,5 @@ password = "Thats my Kung Fu"
 # hex_int = int(hex_str, 16)
 # print(hex(hex_int))
 
-aes.encrypt(plaintext, password)
+ciphertext = aes.encrypt(plaintext, password)
+print(ciphertext)

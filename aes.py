@@ -68,37 +68,40 @@ class AES:
     # AES Key Expansion
     def __key_schedule__(self):
 
-        keys = np.array(([self.key] * 11))
-        
-        for i in range(1, 11):
+        keys = np.array([self.key] * 11)
+
+        for i in range(1,11):
             # Build RotWord
             last_key = keys[i-1]
-            rot_word = [last_key[1][3], last_key[2][3], last_key[3][3], last_key[0][3]]
+            rot_word = [last_key[3][1], last_key[3][2], last_key[3][3], last_key[3][0],]
+            sub_word = [0] * 4
 
-            # SubBytes in RotWord
+            # SubBytes in RotWord (Build SubWord)
             for j in range(4):
                 tmp = int(rot_word[j], 16)
                 row = tmp // 0x10
                 col = tmp % 0x10
-                rot_word[j] = self.sbox[row][col]
+                sub_word[j] = self.sbox[row][col]
 
             rcon = [hex(x) for x in self.__get_matrix_colum__(self.rcon, i-1)]
 
-            # Calculate new first column
-            first_col = self.__get_matrix_colum__(last_key, 0)
-            curr_col = self.__arr_xor__(first_col, rot_word)
-            curr_col = self.__arr_xor__(curr_col, rcon)
+            previous_word = self.__arr_xor__(sub_word, rcon)
 
-            round_key = np.array([curr_col])
+
+            curr_word = self.__arr_xor__(last_key[0], previous_word)
+
+            round_key = np.array([curr_word])
+            previous_word = curr_word
 
             for l in range(1, 4):
-                col = self.__get_matrix_colum__(last_key, l)
-                new_col = self.__arr_xor__(col, round_key[l-1])
-                round_key = np.append(round_key, [new_col], axis=0)
+                curr_word = self.__arr_xor__(last_key[l], previous_word)
+                round_key = np.append(round_key, [curr_word], axis=0)
+                previous_word = curr_word
 
-            round_key = np.array(round_key.reshape(4, 4)).transpose(1, 0)
+            round_key = np.array(round_key.reshape(4, 4))
             keys[i] = round_key
 
+        keys = np.concatenate([[self.key], keys[:-1]])
         return keys
 
     # Matrix XOR bitwise operation
@@ -204,26 +207,10 @@ class AES:
             key = self.__generate_key_from_password__(key)
             self.__set_key__(key)
 
-        # self.__set_key__([
-        #     ['0x2b', '0x28', '0xab', '0x09'],
-        #     ['0x7e', '0xae', '0xf7', '0xcf'],
-        #     ['0x15', '0xd2', '0x15', '0x4f'],	
-        #     ['0x16', '0xa6', '0x88', '0x3c']
-        # ])
-
-        # self.__set_key__([
-        #     ['0x00', '0x00', '0x00', '0x00'],
-        #     ['0x00', '0x00', '0x00', '0x00'],
-        #     ['0x00', '0x00', '0x00', '0x00'],	
-        #     ['0x00', '0x00', '0x00', '0x00']
-        # ])
-
         nb_of_blocks = math.ceil(len(plaintext) / 16)
         blocks = self.__plaintext_to_blocks__(plaintext, nb_of_blocks)
 
         round_keys = self.__key_schedule__()
-
-        print(round_keys)
 
         for i in range(0, nb_of_blocks):
             state = blocks[i]
@@ -233,20 +220,21 @@ class AES:
             state = self.__add_round_key__(state, round_key)
 
             # Main rounds
-            for j in range(1, 2):
+            for j in range(1, 10):
                 state = self.__sub_bytes__(state)
                 state = self.__shift_rows__(state)
                 state = self.__mix_columns__(state)
-                state = self.__add_round_key__(state, round_keys[j])
-                # print(state)
+                state = self.__add_round_key__(state, round_keys[j].transpose(1,0))
+                state = state.transpose(1, 0)
+            
             # Final round
-            # block = sub_bytes(block)
-            # block = shift_rows(block)
-            # block = add_round_key(block, round_keys[-1])
+            state = self.__sub_bytes__(state)
+            state = self.__shift_rows__(state)
+            state = self.__add_round_key__(state, round_keys[-1].transpose(1,0))
 
         # Convert state to a flat list
-        # ciphertext = [state[i][j] for i in range(4) for j in range(4)]
-        # return bytes(ciphertext)
+        ciphertext = state.flatten()
+        return ciphertext
 
     # AES decryption
     def decrypt(ciphertext, key):
