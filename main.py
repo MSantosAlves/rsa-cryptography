@@ -2,6 +2,11 @@ from aes import AES
 
 aes = AES()
 
-plaintext = "This is a test message and it will be used for tests purposes."
+plaintext = "Two One Nine Two"
+password = "Thats my Kung Fu"
 
-bs = aes.encrypt(plaintext)
+# hex_str = "0xAD4"
+# hex_int = int(hex_str, 16)
+# print(hex(hex_int))
+
+aes.encrypt(plaintext, password)
