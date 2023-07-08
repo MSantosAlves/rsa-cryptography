@@ -45,6 +45,18 @@ class AES:
         self.key = key
 
     def __generate_key_from_password__(self, password):
+        pass_size = len(password)
+        padding_size = 16 - pass_size
+
+        if pass_size > 16:
+            password = password[:16]
+        
+        if padding_size > 0:
+            padding  = ' ' * padding_size
+            password += padding
+
+        print(password)
+        
         key_block = []
         key = bytearray((ord(c) for c in password))
         key = [hex(x) for x in key]
@@ -128,20 +140,59 @@ class AES:
         state = self.__matrix_column_xor__(state, round_key)
         return state
 
+    def __self_idx_to_hex__(self, idx):
+        if idx < 10:
+            return str(idx)
+        idx = str(idx)
+
+        idx = 'a' if idx == "10" else idx
+        idx = 'b' if idx == "11" else idx
+        idx = 'c' if idx == "12" else idx
+        idx = 'd' if idx == "13" else idx
+        idx = 'e' if idx == "14" else idx
+        idx = 'f' if idx == "15" else idx
+
+        return idx
+   
+    def __inv_sbox__(self, element):
+        row = ""
+        col = ""
+        for i in range(16):
+            for j in range(16):
+                if self.sbox[i][j] == element:
+                    row = self.__self_idx_to_hex__(i)
+                    col = self.__self_idx_to_hex__(j)
+        return row + col
+
+
     # AES SubBytes transformation
-    def __sub_bytes__(self, state):
-        for i in range(4):
-            for j in range(4):
-                tmp = int(state[i][j], 16)
-                row = tmp // 0x10
-                col = tmp % 0x10
-                state[i][j] = self.sbox[row][col]
+    def __sub_bytes__(self, state, inv = False):
+
+        if not inv:
+            for i in range(4):
+                for j in range(4):
+                    tmp = int(state[i][j], 16)
+                    row = tmp // 0x10
+                    col = tmp % 0x10
+                    state[i][j] = self.sbox[row][col]
+        else:
+            inv_state = state.flatten()
+            for i in range(16):
+                inv_state[i] = "0x" + self.__inv_sbox__(inv_state[i])
+            state = inv_state.reshape(4, 4)
+
         return state
 
     # AES ShiftRows transformation
-    def __shift_rows__(self, state):
-        for i in range(1, 4):
-            state[i] = np.concatenate((state[i][i:], state[i][:i]))
+    def __shift_rows__(self, state, inv = False):
+        
+        if not inv:
+            for i in range(1, 4):
+                state[i] = np.concatenate((state[i][i:], state[i][:i]))
+        else:
+            for i in range(1, 4):
+                state[i] = np.concatenate((state[i][4-i:4], state[i][0:4-i]))
+
         return state
 
     
@@ -160,7 +211,7 @@ class AES:
         return p
 
     # AES MixColumns transformation
-    def __mix_columns__(self, state):
+    def __mix_columns__(self, state, inv = False):
         # The AES mix_columns matrix
         mix_matrix = [
             [0x02, 0x03, 0x01, 0x01],
@@ -169,17 +220,36 @@ class AES:
             [0x03, 0x01, 0x01, 0x02]
         ]
 
+        inv_mix_matrix = [
+            [0xe, 0xb, 0xd, 0x9],
+            [0x9, 0xe, 0xb, 0xd],
+            [0xd, 0x9, 0xe, 0xb],
+            [0xb, 0xd, 0x9, 0xe]
+        ]
+
         # Perform the matrix multiplication
         result_state = np.array([[0] * 4 for _ in range(4)])
         for i in range(4):
             for j in range(4):
                 for k in range(4):
-                    a = mix_matrix[i][k]
+
+                    if not inv:
+                        a = mix_matrix[i][k]
+                    else:
+                        a = inv_mix_matrix[i][k]
                     b = int(state[k][j], 16)
+
                     result_state[i][j] = result_state[i][j] ^ self.__galois_multiplication__(a, b)
-        
+
+                    if inv:
+                        value = str(hex(result_state[i][j])).split("0x")[1]
+                        if len(value) > 2:
+                            value = "0x" + value[1:3]
+                            result_state[i][j] = int(value, 16)
+                        
         result_state = [hex(x) for x in result_state.flatten()]
         result_state = np.array(result_state).reshape(4, 4)
+        
         return result_state
 
     def __plaintext_to_blocks__(self, plaintext, nb_of_blocks):
@@ -201,20 +271,54 @@ class AES:
             blocks.append(block)
         return np.array(blocks)
 
+    def __print_blocks_as_hex__(self, block):
+        text = ""
+
+        for i in range(len(block)):
+            for j in range(len(block[i])):
+                for k in range(len(block[i][j])):
+                    text += block[i][j][k].split("0x")[1] + " "
+        print("Input     :", text)
+
+    def __print_key_as_hex__(self, key):
+        text = ""
+
+        for i in range(len(key)):
+            for j in range(len(key[i])):
+                    text += key[i][j].split("0x")[1] + " "
+
+        print("Key       :", text)
+
+    def hex_to_text(self, plaintext):
+        str_bytes = [x for x in plaintext.split(" ") if x]
+        text = "".join([chr(int(x, 16)) for x in str_bytes])
+        return text
+
     # AES encryption
     def encrypt(self, plaintext, key = None):
         if key is not None:
             key = self.__generate_key_from_password__(key)
             self.__set_key__(key)
 
-        nb_of_blocks = math.ceil(len(plaintext) / 16)
+        plaintext_size = len(plaintext)
+        nb_of_blocks = math.ceil(plaintext_size / 16)
+        
+        padding_size = (nb_of_blocks * 16) - plaintext_size
+        padding  = ' ' * padding_size
+
+        plaintext += padding
         blocks = self.__plaintext_to_blocks__(plaintext, nb_of_blocks)
+
+        self.__print_blocks_as_hex__(blocks)
+        self.__print_key_as_hex__(self.key)
 
         round_keys = self.__key_schedule__()
 
+        ciphertext = ""
+        
         for i in range(0, nb_of_blocks):
             state = blocks[i]
-            round_key = round_keys[i]
+            round_key = round_keys[0]
             
             # Initial round
             state = self.__add_round_key__(state, round_key)
@@ -232,30 +336,53 @@ class AES:
             state = self.__shift_rows__(state)
             state = self.__add_round_key__(state, round_keys[-1].transpose(1,0))
 
+            ciphertext += ' '.join(str(x) for x in state.flatten()) + " "
+
         # Convert state to a flat list
-        ciphertext = state.flatten()
         return ciphertext
 
     # AES decryption
-    def decrypt(ciphertext, key):
-        state = [[ciphertext[i + j] for j in range(0, 16, 4)] for i in range(0, 16, 4)]
-        round_keys = expand_key(key)
+    def decrypt(self, ciphertext, key):
+        ciphertext = [x for x in ciphertext.split(" ") if x]
+        nb_of_blocks =  math.ceil(len(ciphertext) / 16)
 
-        # Initial round
-        state = add_round_key(state, round_keys[-1])
+        blocks = []
 
-        # Main rounds
-        for i in range(9, 0, -1):
-            state = shift_rows(state, inverse=True)
-            state = sub_bytes(state, inverse=True)
-            state = add_round_key(state, round_keys[i])
-            state = mix_columns(state, inverse=True)
+        for i in range(nb_of_blocks):
+            start = i * 16
+            end = start + 16 if start + 16 <= len(ciphertext) else len(ciphertext)
+            blocks.append(np.array(ciphertext[start:end]).reshape(4, 4))
 
-        # Final round
-        state = shift_rows(state, inverse=True)
-        state = sub_bytes(state, inverse=True)
-        state = add_round_key(state, round_keys[0])
+        
+        decrypted = ""
 
-        # Convert state to a flat list
-        plaintext = [state[i][j] for i in range(4) for j in range(4)]
-        return bytes(plaintext)
+        round_keys = self.__key_schedule__()
+
+        for j in range(nb_of_blocks):
+
+            state = blocks[j]
+
+            # Initial round
+            state = self.__add_round_key__(state, round_keys[-1])
+            state = self.__shift_rows__(state, inv= True)
+            state = self.__sub_bytes__(state, inv= True)
+
+
+            # Main rounds
+            for i in range(9, 1, -1):
+                state = state.transpose(1, 0)
+                state = self.__add_round_key__(state, round_keys[i])
+                state = self.__mix_columns__(state, inv = True)
+                state = self.__shift_rows__(state, inv = True)
+                state = self.__sub_bytes__(state, inv = True)
+
+            # Final round
+            state = self.__add_round_key__(state, round_keys[1].transpose(1,0)).transpose(1, 0)
+            state = self.__mix_columns__(state, inv = True)
+            state = self.__shift_rows__(state, inv = True)
+            state = self.__sub_bytes__(state, inv= True)
+            state = self.__add_round_key__(state, round_keys[0].transpose(1,0))
+
+            decrypted += ' '.join(str(x) for x in state.flatten()) + " "
+
+        return decrypted
