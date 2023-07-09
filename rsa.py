@@ -5,14 +5,14 @@ import base64
 class RSA:
 
     def __generate_prime_numbers__(self):
-        p = random.getrandbits(11)
-        q = random.getrandbits(11)
+        p = random.getrandbits(1024)
+        q = random.getrandbits(1024)
         
         while not self.__is_prime__(p):
-            p = random.getrandbits(11)
+            p = random.getrandbits(1024)
 
         while not self.__is_prime__(q):
-            q = random.getrandbits(11)
+            q = random.getrandbits(1024)
 
         return p, q
 
@@ -79,41 +79,26 @@ class RSA:
 
         return e, n, d
 
+    def __string_to_int__(self, s):
+        return int.from_bytes(s.encode(), byteorder='little')
+
+    def __int_to_string__(self, i):
+        length = math.ceil(i.bit_length() / 8)
+        return i.to_bytes(length, byteorder='little').decode()
+
     def encrypt(self, m, e, n):
-        encoded_message = [ord(c) for c in m]
-
-        cipher_message = encoded_message
-
-        for i in range(len(encoded_message)):
-            cipher_message[i] = (encoded_message[i] ** e) % n
-            
-        return cipher_message
+        m = self.__string_to_int__(m)
+        return pow(m, e, n)
        
     def decrypt(self, c, d, n):
-        cipher_message = c
-
-        encoded_message = cipher_message
-
-        for i in range(len(cipher_message)):
-            encoded_message[i] = (cipher_message[i] ** d) % n
-
-        return encoded_message
+        m = pow(c, d, n)
+        return self.__int_to_string__(m)
 
     def sign_message(self, m, d, n):
-        encoded_message = [ord(c) for c in m]
-
-        signed_message = encoded_message
-
-        for i in range(len(encoded_message)):
-            signed_message[i] = (encoded_message[i] ** d) % n
-        
-        return signed_message
+        s = self.__string_to_int__(m)
+        return pow(s, d, n)
 
     def check_signature(self, s, e, n):
-        signed_message = s
-        original_message = signed_message
-
-        for i in range(len(signed_message)):
-            original_message[i] = (signed_message[i] ** e) % n
+        m = pow(s, e, n)
+        return self.__int_to_string__(m) 
         
-        return original_message
