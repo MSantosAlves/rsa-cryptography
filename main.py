@@ -4,13 +4,23 @@ from rsa import RSA
 aes = AES()
 rsa = RSA()
 
-plaintext = "Two One"
+message = "Two One Nine Two"
+encoded_message = [ord(c) for c in message]
 password = "Thats my Kung Fu"
 
-ciphertext, e, d, n, phi = rsa.encrypt(plaintext)
-#signed_message = rsa.sign_message(ciphertext, d, n)
+e, n, d = rsa.generate_key_pair()
 
-#print(rsa.check_signature(ciphertext, signed_message, e, n))
+print(f"e: {e}, n: {n}, d: {d}")
+print(f"encoded_message: {encoded_message}")
+cipher = rsa.encrypt(message, e, n)
+print(f"cipher: {cipher}")
+decipher = rsa.decrypt(cipher, d, n)
+print(f"decipher: {decipher}")
+
+signed_message = rsa.sign_message(message, d, n)
+print(f"signed_message: {signed_message}")
+original_message_encoded = rsa.check_signature(signed_message, e, n)
+print(f"original_message_encoded: {original_message_encoded}")
 
 #decrypted_text = rsa.decrypt(ciphertext, 103, 143)
 

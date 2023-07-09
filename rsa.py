@@ -1,17 +1,18 @@
 import math
 import random
+import base64
 
 class RSA:
 
     def __generate_prime_numbers__(self):
-        p = random.getrandbits(1024)
-        q = random.getrandbits(1024)
+        p = random.getrandbits(11)
+        q = random.getrandbits(11)
         
         while not self.__is_prime__(p):
-           p = random.getrandbits(1024)
+            p = random.getrandbits(11)
 
         while not self.__is_prime__(q):
-            q = random.getrandbits(1024)
+            q = random.getrandbits(11)
 
         return p, q
 
@@ -61,11 +62,10 @@ class RSA:
     def __totient_function__(self, p, q):
         return (p-1) * (q-1)
 
-
-    def encrypt(self, m):
+    def generate_key_pair(self):
         # Prime numbers
         p, q = self.__generate_prime_numbers__()
-       
+
         n = p * q
 
         # Numbers of coprimes of n
@@ -77,6 +77,9 @@ class RSA:
         # Private key
         d = self.__mod_inv__(e, phi)
 
+        return e, n, d
+
+    def encrypt(self, m, e, n):
         encoded_message = [ord(c) for c in m]
 
         cipher_message = encoded_message
@@ -84,19 +87,17 @@ class RSA:
         for i in range(len(encoded_message)):
             cipher_message[i] = (encoded_message[i] ** e) % n
             
-        return cipher_message, e, d, n, phi
+        return cipher_message
        
     def decrypt(self, c, d, n):
-        cipher_message = [ord(c) for c in list(c)]
+        cipher_message = c
 
         encoded_message = cipher_message
 
         for i in range(len(cipher_message)):
             encoded_message[i] = (cipher_message[i] ** d) % n
 
-        plaintext = "".join([chr(i) for i in encoded_message])
-
-        return plaintext
+        return encoded_message
 
     def sign_message(self, m, d, n):
         encoded_message = [ord(c) for c in m]
@@ -106,19 +107,13 @@ class RSA:
         for i in range(len(encoded_message)):
             signed_message[i] = (encoded_message[i] ** d) % n
         
-        signed = "".join([chr(i) for i in signed_message])
+        return signed_message
 
-        return signed
-
-    def check_signature(self, c, s, e, n):
-        message = [ord(ch) for ch in list(c)]
-        signed_message = [ord(c) for c in list(s)]
-        is_valid = True
-
-        check_message = signed_message
+    def check_signature(self, s, e, n):
+        signed_message = s
+        original_message = signed_message
 
         for i in range(len(signed_message)):
-            check_message[i] = (signed_message[i] ** e) % n
-            is_valid = is_valid and (check_message[i] == message[i])
-
-        return is_valid
+            original_message[i] = (signed_message[i] ** e) % n
+        
+        return original_message
