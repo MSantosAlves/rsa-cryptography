@@ -26,6 +26,7 @@ class OAEP:
         h_len = hashlib.sha3_256().digest_size
 
         if(length > pow(2, h_len)):
+            print("Ocorreu um erro. Mascara muito grande")
             exit()       
 
         for counter in range(0, math.ceil(length / h_len)):
@@ -41,6 +42,7 @@ class OAEP:
         mod_size = modulus.bit_length() // 8
 
         if(m_len > mod_size - 2*h_len -2):
+            print("Ocorreu um erro. A mensagem é muito grande.")
             exit()
 
         padding_string = b"\x00" * (mod_size - m_len - 2*h_len - 2)
@@ -61,14 +63,17 @@ class OAEP:
         mod_size = modulus.bit_length() // 8
 
         if(mod_size < 2*hLen + 2):
+            print("Ocorreu um erro.")
             exit()
 
         if(len(message) != mod_size):
+            print("Ocorreu um erro.")
             exit()
 
         buff = bytearray()
         buff.append(message[0])
         if(buff != b"\x00"):
+            print("Ocorreu um erro.")
             exit()
 
         masked_seed = message[1:hLen+1]
@@ -80,6 +85,7 @@ class OAEP:
         h_label_new = data_block[:hLen]
 
         if(h_label != h_label_new):
+            print("Ocorreu um erro.")
             exit()
 
         newBlock = data_block[hLen:]
@@ -94,6 +100,7 @@ class OAEP:
                 if buff == b"\x01":
                     break
                 else:
+                    print("Ocorreu um erro.")
                     exit()
 
         return newBlock[count+1:]
