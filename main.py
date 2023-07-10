@@ -62,6 +62,15 @@ def case_3():
     cipher_rsa_a_to_b = rsa.encrypt(cipher_aes, e_b, n_b)
     print(f"[RSA] Mensagem cifrada A para B: {cipher_rsa_a_to_b}")
 
+    decipher_a_to_b = rsa.decrypt(cipher_rsa_a_to_b.encode(), d_b, n_b)
+    print(f"[RSA] Mensagem decifrada de A para B: {decipher_a_to_b}")
+
+    decipher_b_to_a = rsa.decrypt(cipher_rsa_b_to_a.encode(), d_a, n_a)
+    print(f"[RSA] Mensagem decifrada de B para A: {decipher_b_to_a}")
+
+    original_message = aes.decrypt(decipher_b_to_a.encode(), password)
+    print(f"[AES] Mensagem decifrada: {original_message}")
+
     return
 
 def case_4():
