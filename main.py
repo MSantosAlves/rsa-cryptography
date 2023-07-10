@@ -3,23 +3,116 @@ from rsa import RSA
 from file import FileHandler
 
 aes = AES()
+rsa = RSA("arquivo.txt")
+file_handler = FileHandler("arquivo.txt")
 
-plaintext = "Two One Nine Two"
-password = "Thats my Kung Fu"
+menu_options = {
+    1: 'Cifração de uma mensagem com AES',
+    2: 'Cifra híbrida',
+    3: 'Cifra híbrida (autenticação mútua)',
+    4: 'Geração de Assinatura de A',
+    5: 'Verificação da assinatura',
+    6: 'Sair' 
+}
 
-ciphertext = aes.encrypt(plaintext, password)
-message = aes.decrypt(ciphertext, password)
+def print_menu():
+    for key in menu_options.keys():
+        print (key, '--', menu_options[key] )
 
-print(f"Message: {message}")
+def case_1():
+    plaintext = input('Digite uma mensagem: ')
+    password = input('Digite uma senha: ')
 
-rsa = RSA("test.txt")
-filehandler = FileHandler("test.txt")
-file_bytes = filehandler.read()
+    ciphertext = aes.encrypt(plaintext, password)
+    print(f"[AES] Mensagem cifrada: {ciphertext}")
+    message = aes.decrypt(ciphertext, password)
+    print(f"[AES] Mensagem decifrada: {message}")
+    return
 
-e, n, d = rsa.generate_key_pair()
-cipher = rsa.encrypt(e, n)
-message = rsa.decrypt(d, n)
-signature = rsa.sign_message(d, n)
-is_valid = rsa.check_signature(e, n)
+def case_2():
+    plaintext = input('Digite uma mensagem: ')
+    password = input('Digite uma senha: ')
+    cipher_aes = aes.encrypt(plaintext, password)
+    print(f"[AES] Mensagem cifrada: {cipher_aes}")
 
-print(f"Check Signature: {is_valid}")
+    e, n, d = rsa.generate_key_pair()
+    cipher_rsa = rsa.encrypt(e, n, cipher_aes)
+    print(f"[RSA] Mensagem cifrada: {cipher_rsa}")
+    cipher_aes = rsa.decrypt(d, n).encode()
+    print(f"[RSA] Mensagem decifrada: {cipher_aes}")
+
+    original_message = aes.decrypt(cipher_aes, password)
+    print(f"[AES] Mensagem decifrada: {original_message}")
+
+    return
+    
+def case_3():
+    plaintext = input('Digite uma mensagem: ')
+    password = input('Digite uma senha: ')
+    cipher_aes = aes.encrypt(plaintext, password)
+    print(f"[AES] Mensagem cifrada: {cipher_aes}")
+
+    e_a, n_a, d_a = rsa.generate_key_pair()
+    e_b, n_b, d_b = rsa.generate_key_pair()
+
+    cipher_rsa_b_to_a = rsa.encrypt(e_a, n_a, cipher_aes)
+    print(f"[RSA] Mensagem cifrada B para A: {cipher_rsa_b_to_a}")
+
+    cipher_rsa_a_to_b = rsa.encrypt(e_b, n_b, cipher_aes)
+    print(f"[RSA] Mensagem cifrada A para B: {cipher_rsa_a_to_b}")
+
+    return
+
+def case_4():
+    plaintext = input('Digite uma mensagem: ')
+    password = input('Digite uma senha: ')
+    cipher_aes = aes.encrypt(plaintext, password)
+    print(f"[AES] Mensagem cifrada: {cipher_aes}")
+
+    e, n, d = rsa.generate_key_pair()
+    cipher_rsa = rsa.encrypt(e, n, cipher_aes)
+    print(f"[RSA] Mensagem cifrada: {cipher_rsa}")
+
+    sign_rsa = rsa.sign_message(d, n, cipher_aes)
+    print(f"[RSA] Assinatura da mensagem: {sign_rsa}")
+
+    return
+
+def case_5():
+    plaintext = input('Digite uma mensagem: ')
+    password = input('Digite uma senha: ')
+    cipher_aes = aes.encrypt(plaintext, password)
+    print(f"[AES] Mensagem cifrada: {cipher_aes}")
+
+    e, n, d = rsa.generate_key_pair()
+    cipher_rsa = rsa.encrypt(e, n, cipher_aes)
+    print(f"[RSA] Mensagem cifrada: {cipher_rsa}")
+
+    sign_rsa = rsa.sign_message(d, n, cipher_aes)
+    print(f"[RSA] Assinatura da mensagem: {sign_rsa}")
+
+    is_valid = rsa.check_signature(e, n)
+    print(f"[RSA] Verificação da assinatura: {is_valid}")
+
+while(True):
+    print_menu()
+    option = ''
+    try:
+        option = int(input('Escolhe uma opção: '))
+    except:
+        print('Por favor, digite um número.')
+    if option == 1:
+        case_1()
+    elif option == 2:
+        case_2()
+    elif option == 3:
+        case_3()
+    elif option == 4:
+        case_4()
+        exit()
+    elif option == 5:
+        case_5()
+    elif option == 6:
+        exit()
+    else:
+        print('Opção inválida, por favor escolha um número entre 1 e 5.')

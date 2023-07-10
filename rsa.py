@@ -106,8 +106,9 @@ class RSA:
     def __int_to_bytes__(self, i):
         return i.to_bytes(math.ceil(i.bit_length() / 8), byteorder='little')
 
-    def encrypt(self, e, n):
-        m = self.message
+    def encrypt(self, e, n, m = None):
+        if m is None:
+            m = self.message
         oaep = OAEP()
         encoded_message = oaep.encode(m, n)
         m = self.__bytes_to_int__(encoded_message)
@@ -127,7 +128,9 @@ class RSA:
         self.filehandler.write(message, False)
         return message
 
-    def sign_message(self, d, n):
+    def sign_message(self, d, n, m = None):
+        if m is None:
+            m = self.message
         m = self.message
         hash_message = OAEP().__sha256__(m)
         h = self.__bytes_to_int__(hash_message)

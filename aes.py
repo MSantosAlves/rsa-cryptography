@@ -332,22 +332,20 @@ class AES:
             state = self.__add_round_key__(state, round_keys[-1].transpose(1,0))
 
             ciphertext += ' '.join(str(x) for x in state.flatten()) + " "
-
-        # Convert state to a flat list
-        return ciphertext
+            
+        return ciphertext.encode()
 
     # AES decryption
     def decrypt(self, ciphertext, key):
-        ciphertext = [x for x in ciphertext.split(" ") if x]
-        nb_of_blocks =  math.ceil(len(ciphertext) / 16)
-
+        ciphertext = [x for x in ciphertext.decode().split(" ") if x]
+        nb_of_blocks = math.ceil(len(ciphertext) / 16)
+        
         blocks = []
 
         for i in range(nb_of_blocks):
             start = i * 16
             end = start + 16 if start + 16 <= len(ciphertext) else len(ciphertext)
             blocks.append(np.array(ciphertext[start:end]).reshape(4, 4))
-
         
         decrypted = ""
 
