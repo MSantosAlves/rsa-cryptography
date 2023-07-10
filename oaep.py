@@ -4,8 +4,8 @@ import hashlib
 import random
 
 class OAEP:
-    "Implementação fortemente baseada no código disponível em https://gist.github.com/ppoffice/e10e0a418d5dafdd5efe9495e962d3d2"
-    
+    "Implementação baseada no código disponível em https://gist.github.com/ppoffice/e10e0a418d5dafdd5efe9495e962d3d2"
+
     def __xor__(self, data, mask):
         masked = b''
         l_data = len(data)
