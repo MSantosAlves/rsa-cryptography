@@ -12,7 +12,8 @@ menu_options = {
     3: 'Cifra híbrida (autenticação mútua)',
     4: 'Geração de Assinatura de A',
     5: 'Verificação da assinatura',
-    6: 'Sair' 
+    6: 'Cifração, decifração e assinatura de um documento',
+    7: 'Sair' 
 }
 
 def print_menu():
@@ -102,6 +103,22 @@ def case_5():
     
     return
 
+def case_6():
+    message = file_handler.read()
+
+    e, n, d = rsa.generate_key_pair()
+    cipher_rsa = rsa.encrypt(message, e, n)
+    print(f"[RSA] Mensagem cifrada: {cipher_rsa}")
+
+    mensagem_original = rsa.decrypt(cipher_rsa, d, n)
+    print(f"[RSA] Mensagem decifrada: {mensagem_original}")
+
+    sign_rsa = rsa.sign_message(cipher_rsa.encode(), d, n)
+    print(f"[RSA] Assinatura da mensagem: {sign_rsa}")
+
+    is_valid = rsa.check_signature(cipher_rsa.encode(), sign_rsa, e, n)
+    print(f"[RSA] Verificação da assinatura: {is_valid}")
+
 while(True):
     print_menu()
     option = ''
@@ -120,6 +137,8 @@ while(True):
     elif option == 5:
         case_5()
     elif option == 6:
+        case_6()
+    elif option == 7:
         exit()
     else:
         print('Opção inválida, por favor escolha um número entre 1 e 5.')
