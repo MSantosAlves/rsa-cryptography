@@ -106,20 +106,17 @@ class RSA:
     def __int_to_bytes__(self, i):
         return i.to_bytes(math.ceil(i.bit_length() / 8), byteorder='little')
 
-    def encrypt(self, e, n, m = None):
-        if m is None:
-            m = self.message
+    def encrypt(self, m, e, n):
         oaep = OAEP()
         encoded_message = oaep.encode(m, n)
         m = self.__bytes_to_int__(encoded_message)
         cipher = pow(m, e, n)
         b64_cipher = base64.b64encode(self.__int_to_bytes__(cipher)).decode()
-        self.filehandler.write(self.__break_string_into_lines__(b64_cipher))
-        return cipher
+        self.filehandler.write(b64_cipher)
+        return b64_cipher
        
-    def decrypt(self, d, n):
-        b64_cipher = self.filehandler.read_cipher()
-        c = self.__bytes_to_int__(base64.b64decode(b64_cipher.decode()))
+    def decrypt(self, c,  d, n):
+        c = self.__bytes_to_int__(base64.b64decode(c))
         oaep = OAEP()
         m = pow(c, d, n)
         encoded_message = self.__int_to_bytes__(m)
@@ -128,10 +125,7 @@ class RSA:
         self.filehandler.write(message, False)
         return message
 
-    def sign_message(self, d, n, m = None):
-        if m is None:
-            m = self.message
-        m = self.message
+    def sign_message(self, m, d, n):
         hash_message = OAEP().__sha256__(m)
         h = self.__bytes_to_int__(hash_message)
         s = pow(h, d, n)
@@ -139,10 +133,8 @@ class RSA:
         self.filehandler.signature(signature)
         return signature
 
-    def check_signature(self, e, n):
-        b64_signature = self.filehandler.read_signature()
-        s = self.__bytes_to_int__(base64.b64decode(b64_signature.decode()))
-        m = self.message
+    def check_signature(self, m, s, e, n):
+        s = self.__bytes_to_int__(base64.b64decode(s))
         hash_message = OAEP().__sha256__(m)
 
         h = pow(s, e, n)

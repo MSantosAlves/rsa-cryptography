@@ -36,9 +36,9 @@ def case_2():
     print(f"[AES] Mensagem cifrada: {cipher_aes}")
 
     e, n, d = rsa.generate_key_pair()
-    cipher_rsa = rsa.encrypt(e, n, cipher_aes)
+    cipher_rsa = rsa.encrypt(cipher_aes, e, n)
     print(f"[RSA] Mensagem cifrada: {cipher_rsa}")
-    cipher_aes = rsa.decrypt(d, n).encode()
+    cipher_aes = rsa.decrypt(cipher_rsa, d, n).encode()
     print(f"[RSA] Mensagem decifrada: {cipher_aes}")
 
     original_message = aes.decrypt(cipher_aes, password)
@@ -55,10 +55,10 @@ def case_3():
     e_a, n_a, d_a = rsa.generate_key_pair()
     e_b, n_b, d_b = rsa.generate_key_pair()
 
-    cipher_rsa_b_to_a = rsa.encrypt(e_a, n_a, cipher_aes)
+    cipher_rsa_b_to_a = rsa.encrypt(cipher_aes, e_a, n_a)
     print(f"[RSA] Mensagem cifrada B para A: {cipher_rsa_b_to_a}")
 
-    cipher_rsa_a_to_b = rsa.encrypt(e_b, n_b, cipher_aes)
+    cipher_rsa_a_to_b = rsa.encrypt(cipher_aes, e_b, n_b)
     print(f"[RSA] Mensagem cifrada A para B: {cipher_rsa_a_to_b}")
 
     return
@@ -70,10 +70,10 @@ def case_4():
     print(f"[AES] Mensagem cifrada: {cipher_aes}")
 
     e, n, d = rsa.generate_key_pair()
-    cipher_rsa = rsa.encrypt(e, n, cipher_aes)
+    cipher_rsa = rsa.encrypt(cipher_aes, e, n)
     print(f"[RSA] Mensagem cifrada: {cipher_rsa}")
 
-    sign_rsa = rsa.sign_message(d, n, cipher_aes)
+    sign_rsa = rsa.sign_message(cipher_aes, d, n)
     print(f"[RSA] Assinatura da mensagem: {sign_rsa}")
 
     return
@@ -85,14 +85,22 @@ def case_5():
     print(f"[AES] Mensagem cifrada: {cipher_aes}")
 
     e, n, d = rsa.generate_key_pair()
-    cipher_rsa = rsa.encrypt(e, n, cipher_aes)
+    cipher_rsa = rsa.encrypt(cipher_aes, e, n)
     print(f"[RSA] Mensagem cifrada: {cipher_rsa}")
 
-    sign_rsa = rsa.sign_message(d, n, cipher_aes)
+    cipher_aes = rsa.decrypt(cipher_rsa, d, n).encode()
+    print(f"[RSA] Mensagem decifrada: {cipher_aes}")
+
+    original_message = aes.decrypt(cipher_aes, password)
+    print(f"[AES] Mensagem decifrada: {original_message}")
+
+    sign_rsa = rsa.sign_message(cipher_aes, d, n)
     print(f"[RSA] Assinatura da mensagem: {sign_rsa}")
 
-    is_valid = rsa.check_signature(e, n)
+    is_valid = rsa.check_signature(cipher_aes, sign_rsa, e, n)
     print(f"[RSA] Verificação da assinatura: {is_valid}")
+    
+    return
 
 while(True):
     print_menu()
@@ -109,7 +117,6 @@ while(True):
         case_3()
     elif option == 4:
         case_4()
-        exit()
     elif option == 5:
         case_5()
     elif option == 6:
