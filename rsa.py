@@ -1,8 +1,15 @@
 import math
 import random
 import base64
+from oaep import OAEP
+from file import FileHandler
 
 class RSA:
+
+    def __init__(self, path):
+        self.file_path = path
+        self.filehandler = FileHandler(path)
+        self.message = self.filehandler.read()
 
     def __generate_prime_numbers__(self):
         p = random.getrandbits(1024)
@@ -54,7 +61,7 @@ class RSA:
     def __mod_inv__(self, e, phi):
         g, x, y = self.__egcd__(e, phi)
         if g != 1:
-            raise Exception('modular inverse does not exist')
+            raise Exception('Modular inverse not found.')
         else:
             return x % phi
  
@@ -77,28 +84,64 @@ class RSA:
         # Private key
         d = self.__mod_inv__(e, phi)
 
+        self.filehandler.pub_key(e, n)
+        self.filehandler.priv_key(d, n)
+
         return e, n, d
 
-    def __string_to_int__(self, s):
-        return int.from_bytes(s.encode(), byteorder='little')
-
-    def __int_to_string__(self, i):
-        length = math.ceil(i.bit_length() / 8)
-        return i.to_bytes(length, byteorder='little').decode()
-
-    def encrypt(self, m, e, n):
-        m = self.__string_to_int__(m)
-        return pow(m, e, n)
-       
-    def decrypt(self, c, d, n):
-        m = pow(c, d, n)
-        return self.__int_to_string__(m)
-
-    def sign_message(self, m, d, n):
-        s = self.__string_to_int__(m)
-        return pow(s, d, n)
-
-    def check_signature(self, s, e, n):
-        m = pow(s, e, n)
-        return self.__int_to_string__(m) 
+    def __break_string_into_lines__(self, text, n = 64):
+        nb_of_lines = math.ceil(len(text) / n)
+        text_size = len(text)
+        lines = []
+        for i in range(0, nb_of_lines):
+            start = i * n
+            end = start + n if start + n < text_size else text_size
+            lines.append(text[start:end])
         
+        return "\n".join(lines)
+
+    def __bytes_to_int__(self, b):
+        return int.from_bytes(b, byteorder='little')
+
+    def __int_to_bytes__(self, i):
+        return i.to_bytes(math.ceil(i.bit_length() / 8), byteorder='little')
+
+    def encrypt(self, e, n):
+        m = self.message
+        oaep = OAEP()
+        encoded_message = oaep.encode(m, n)
+        m = self.__bytes_to_int__(encoded_message)
+        cipher = pow(m, e, n)
+        b64_cipher = base64.b64encode(self.__int_to_bytes__(cipher)).decode()
+        self.filehandler.write(self.__break_string_into_lines__(b64_cipher))
+        return cipher
+       
+    def decrypt(self, d, n):
+        b64_cipher = self.filehandler.read_cipher()
+        c = self.__bytes_to_int__(base64.b64decode(b64_cipher.decode()))
+        oaep = OAEP()
+        m = pow(c, d, n)
+        encoded_message = self.__int_to_bytes__(m)
+        m = oaep.decode(encoded_message, n)
+        message = m.decode()
+        self.filehandler.write(message, False)
+        return message
+
+    def sign_message(self, d, n):
+        m = self.message
+        hash_message = OAEP().__sha256__(m)
+        h = self.__bytes_to_int__(hash_message)
+        s = pow(h, d, n)
+        signature = base64.b64encode(self.__int_to_bytes__(s)).decode()
+        self.filehandler.signature(signature)
+        return signature
+
+    def check_signature(self, e, n):
+        b64_signature = self.filehandler.read_signature()
+        s = self.__bytes_to_int__(base64.b64decode(b64_signature.decode()))
+        m = self.message
+        hash_message = OAEP().__sha256__(m)
+
+        h = pow(s, e, n)
+
+        return False if h != self.__bytes_to_int__(hash_message) else True

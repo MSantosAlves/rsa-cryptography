@@ -55,8 +55,6 @@ class AES:
             padding  = ' ' * padding_size
             password += padding
 
-        print(password)
-        
         key_block = []
         key = bytearray((ord(c) for c in password))
         key = [hex(x) for x in key]
@@ -278,7 +276,6 @@ class AES:
             for j in range(len(block[i])):
                 for k in range(len(block[i][j])):
                     text += block[i][j][k].split("0x")[1] + " "
-        print("Input     :", text)
 
     def __print_key_as_hex__(self, key):
         text = ""
@@ -286,8 +283,6 @@ class AES:
         for i in range(len(key)):
             for j in range(len(key[i])):
                     text += key[i][j].split("0x")[1] + " "
-
-        print("Key       :", text)
 
     def hex_to_text(self, plaintext):
         str_bytes = [x for x in plaintext.split(" ") if x]
@@ -385,4 +380,5 @@ class AES:
 
             decrypted += ' '.join(str(x) for x in state.flatten()) + " "
 
-        return decrypted
+        message = "".join([chr(int(c, 16)) for c in decrypted.split(" ") if c])
+        return message
